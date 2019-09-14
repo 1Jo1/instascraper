@@ -23,6 +23,7 @@ func GetDGraphClient(dgraphAddress string) (*dgo.Dgraph, *grpc.ClientConn) {
 }
 
 //WithRetries calls f up to the given `times` and returns the last error if times is reached
+//if request fails retry it
 func WithRetries(times int, f func() error) error {
 	var err error
 	for i := 0; i < times; i++ {

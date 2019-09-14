@@ -58,6 +58,7 @@ func (s *Scraper) Run() {
 	for s.IsRunning() {
 		fmt.Println("fetching")
 		m, err := s.nameQReader.FetchMessage(context.Background())
+		fmt.Println("Not Blocking")
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -112,6 +113,7 @@ func ScrapeUserFollowGraph(userName string) (*models.UserFollowInfo, error) {
 
 	err := utils.WithRetries(5, func() error {
 		followingsInfo, err := getUserInfoIn(fmt.Sprintf("http://picdeer.com/%s/followings", userName))
+		fmt.Println("UserName: ", userName)
 		if err != nil {
 			return err
 		}
