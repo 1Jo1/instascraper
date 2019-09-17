@@ -1,8 +1,6 @@
 package scraper
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -26,24 +24,24 @@ type Scraper struct {
 // New returns an initilized scraper
 func New(kafkaAddress string) *Scraper {
 	s := &Scraper{}
-	s.nameQReader = kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        []string{kafkaAddress},
-		GroupID:        "user_follow_graph_scraper",
-		Topic:          "user_names",
-		CommitInterval: time.Second,
-	})
-	s.infoQWriter = kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{kafkaAddress},
-		Topic:    "user_follow_infos",
-		Balancer: &kafka.LeastBytes{},
-		Async:    true,
-	})
-	s.errQWriter = kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{kafkaAddress},
-		Topic:    "user_scrape_errors",
-		Balancer: &kafka.LeastBytes{},
-		Async:    false,
-	})
+	//s.nameQReader = kafka.NewReader(kafka.ReaderConfig{
+	//	Brokers:        []string{kafkaAddress},
+	//	GroupID:        "user_follow_graph_scraper",
+	//	Topic:          "user_names",
+	//	CommitInterval: time.Second,
+	//})
+	//s.infoQWriter = kafka.NewWriter(kafka.WriterConfig{
+	//	Brokers:  []string{kafkaAddress},
+	//	Topic:    "user_follow_infos",
+	//	Balancer: &kafka.LeastBytes{},
+	//	Async:    true,
+	//})
+	//s.errQWriter = kafka.NewWriter(kafka.WriterConfig{
+	//	Brokers:  []string{kafkaAddress},
+	//	Topic:    "user_scrape_errors",
+	//	Balancer: &kafka.LeastBytes{},
+	//	Async:    false,
+	//})
 	s.Executor = service.New()
 	return s
 }
@@ -55,42 +53,60 @@ func (s *Scraper) Run() {
 	}()
 
 	fmt.Println("starting scraper")
+	counter := 0
 	for s.IsRunning() {
 		fmt.Println("fetching")
-		m, err := s.nameQReader.FetchMessage(context.Background())
+
+		//m, err := s.nameQReader.FetchMessage(context.Background())
+		//if err != nil {
+		//	fmt.Println(err)
+		//	break
+		//}
+
+		userName := "willsmith"
+		followInfo, err := ScrapeUserFollowGraph(userName)
+
+		counter++
 		if err != nil {
-			fmt.Println(err)
-			break
+			fmt.Println("Will Smith Error")
+		}
+		//fmt.Println(len(followInfo.Followings))
+		for _, name := range followInfo.Followings {
+			follower, followErr := ScrapeUserFollowGraph(name)
+			counter++
+			fmt.Println(name)
+			fmt.Println("Counter: ", counter)
+			if (followErr != nil) || (follower != nil) {
+				fmt.Println("FollowErr")
+			}
 		}
 
-		userName := string(m.Value)
-		followInfo, err := ScrapeUserFollowGraph(userName)
-		if err != nil {
-			fmt.Println(err)
-			errMessage := &models.ScrapeError{
-				Name:  userName,
-				Error: err.Error(),
-			}
-			serializedErr, err := json.Marshal(errMessage)
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
-			s.errQWriter.WriteMessages(context.Background(), kafka.Message{Value: serializedErr})
-			s.nameQReader.CommitMessages(context.Background(), m)
-			continue
-		}
-		serializedFollowInfo, err := json.Marshal(followInfo)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-		err = s.infoQWriter.WriteMessages(context.Background(), kafka.Message{Value: serializedFollowInfo})
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-		s.nameQReader.CommitMessages(context.Background(), m)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	errMessage := &models.ScrapeError{
+		//		Name:  userName,
+		//		Error: err.Error(),
+		//	}
+		//	serializedErr, err := json.Marshal(errMessage)
+		//	if err != nil {
+		//		fmt.Println(err)
+		//		break
+		//	}
+		//	s.errQWriter.WriteMessages(context.Background(), kafka.Message{Value: serializedErr})
+		//	s.nameQReader.CommitMessages(context.Background(), m)
+		//	continue
+		//}
+		//serializedFollowInfo, err := json.Marshal(followInfo)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	break
+		//}
+		//err = s.infoQWriter.WriteMessages(context.Background(), kafka.Message{Value: serializedFollowInfo})
+		//if err != nil {
+		//	fmt.Println(err)
+		//	break
+		//}
+		//s.nameQReader.CommitMessages(context.Background(), m)
 	}
 }
 
@@ -99,9 +115,9 @@ func (s *Scraper) Close() {
 	s.Stop()
 	s.WaitUntilStopped(time.Second * 3)
 
-	s.nameQReader.Close()
-	s.infoQWriter.Close()
-	s.errQWriter.Close()
+	//s.nameQReader.Close()
+	//s.infoQWriter.Close()
+	//s.errQWriter.Close()
 
 	s.MarkAsClosed()
 }

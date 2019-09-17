@@ -2,8 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
 	"google.golang.org/grpc"
@@ -31,7 +29,7 @@ func WithRetries(times int, f func() error) error {
 			return nil
 		}
 		fmt.Println(err)
-		time.Sleep(100 * time.Millisecond)
+		//time.Sleep(100 * time.Millisecond)
 	}
 	return err
 }
